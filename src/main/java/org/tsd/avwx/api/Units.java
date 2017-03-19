@@ -32,14 +32,6 @@ public class Units implements Serializable {
         this.altimeterUnits = altimeterUnits;
     }
 
-    public String getAltimterUnits() {
-        return altimterUnits;
-    }
-
-    public void setAltimterUnits(String altimterUnits) {
-        this.altimterUnits = altimterUnits;
-    }
-
     public String getTemperatureUnits() {
         return temperatureUnits;
     }

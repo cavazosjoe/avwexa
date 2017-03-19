@@ -20,6 +20,7 @@ public class AvwxClient {
         uriBuilder.setScheme("https");
         uriBuilder.setHost("avwx.rest");
         uriBuilder.setPath("/api/metar/"+code);
+        uriBuilder.addParameter("options", "info,translate");
         try (CloseableHttpClient httpClient = HttpClients.createMinimal()) {
             HttpGet get = new HttpGet(uriBuilder.build());
             String responseString = EntityUtils.toString(httpClient.execute(get).getEntity());

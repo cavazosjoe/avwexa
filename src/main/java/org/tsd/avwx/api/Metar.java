@@ -24,6 +24,9 @@ public class Metar implements Serializable {
     @JsonProperty(value = "Flight-Rules")
     private String flightRules;
 
+    @JsonProperty(value = "Info")
+    private Info info;
+
     @JsonProperty(value = "Other-List")
     private List<String> otherList;
 
@@ -33,8 +36,14 @@ public class Metar implements Serializable {
     @JsonProperty(value = "Time")
     private String time;
 
+    @JsonProperty(value = "Translations")
+    private Translations translations;
+
     @JsonProperty(value = "Units")
     private Units units;
+
+    @JsonProperty(value = "Visibility")
+    private String visibility;
 
     @JsonProperty(value = "Wind-Direction")
     private String windDirection;
@@ -44,6 +53,41 @@ public class Metar implements Serializable {
 
     @JsonProperty(value = "Wind-Speed")
     private String windSpeed;
+
+    @JsonProperty(value = "Wind-Variable-Dir")
+    private List<String> windVariableDirection;
+
+    public Translations getTranslations() {
+        return translations;
+    }
+
+    public void setTranslations(Translations translations) {
+        this.translations = translations;
+    }
+
+    public Info getInfo() {
+        return info;
+    }
+
+    public void setInfo(Info info) {
+        this.info = info;
+    }
+
+    public String getVisibility() {
+        return visibility;
+    }
+
+    public void setVisibility(String visibility) {
+        this.visibility = visibility;
+    }
+
+    public List<String> getWindVariableDirection() {
+        return windVariableDirection;
+    }
+
+    public void setWindVariableDirection(List<String> windVariableDirection) {
+        this.windVariableDirection = windVariableDirection;
+    }
 
     public String getAltimeter() {
         return altimeter;

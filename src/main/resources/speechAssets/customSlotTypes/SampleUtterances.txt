@@ -1,5 +1,23 @@
 GetMetar conditions at {ident}
 GetMetar conditions at {airportName}
+GetMetar conditions for {ident}
+GetMetar conditions for {airportName}
+
+GetMetar me tar at {ident}
+GetMetar me tar at {airportName}
+GetMetar me tar for {ident}
+GetMetar me tar for {airportName}
+
+GetMetar weather at {ident}
+GetMetar weather at {airportName}
+GetMetar weather for {ident}
+GetMetar weather for {airportName}
+
+GetTaf forecast for {ident}
+GetTaf forecast for {airportName}
+
+GetTaf forecast for {ident} {AMAZON.DATE}
+GetTaf forecast for {airportName} {AMAZON.DATE}
 
 AMAZON.StopIntent no
 AMAZON.StopIntent nope

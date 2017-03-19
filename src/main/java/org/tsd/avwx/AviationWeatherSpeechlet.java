@@ -1,5 +1,6 @@
 package org.tsd.avwx;
 
+import com.amazon.speech.slu.Intent;
 import com.amazon.speech.slu.Slot;
 import com.amazon.speech.speechlet.*;
 import com.amazon.speech.ui.PlainTextOutputSpeech;
@@ -22,36 +23,44 @@ public class AviationWeatherSpeechlet implements Speechlet {
 
     public SpeechletResponse onIntent(IntentRequest request, Session session) throws SpeechletException {
         log.info("onIntent: " + request.getIntent().getName());
+
         switch (request.getIntent().getName()) {
             case Constants.Intent.METAR.INTENT_NAME: {
-
-                Slot airportIdSlot = request.getIntent().getSlots().get(Constants.Intent.METAR.AIRPORT_ID_SLOT);
-                Slot airportNameSlot = request.getIntent().getSlots().get(Constants.Intent.METAR.AIRPORT_NAME_SLOT);
-                String airportIdentifier = null;
-
-                if (airportIdSlot.getValue() != null) {
-                    String spokenCode = airportIdSlot.getValue();
-                    airportIdentifier = AirportUtil.getCodeForSpokenIdentifier(spokenCode);
-                } else if (airportNameSlot.getValue() != null) {
-                    String airportName = airportNameSlot.getValue();
-                    airportIdentifier = AirportUtil.getCodeForAirportName(airportName);
-                } else {
-                    return getSpokenResponse("You wanted a METAR but didn't specify a code");
-                }
-
-                if (airportIdentifier != null) {
+                Airport airport = parseAirportFromIntent(request.getIntent());
+                if (airport != null) {
                     try {
-                        Metar metar = AvwxClient.getMetarForStation(airportIdentifier);
-                        return getSpokenResponse("Altimeter at " + airportIdentifier + " is " + metar.getAltimeter());
+                        Metar metar = AvwxClient.getMetarForStation(airport.getCode());
+                        return getSpokenResponse(SpeechUtil.speakMetar(airport, metar));
                     } catch (Exception e) {
-                        return getSpokenResponse("Sorry, I couldn't fetch the METAR for " + airportIdentifier);
+                        return getSpokenResponse("Sorry, I couldn't fetch the METAR for " + airport);
                     }
                 } else {
-                    return getSpokenResponse("I couldn't figure out what airport you wanted");
+                    return getSpokenResponse("Sorry, I couldn't figure out what airport you wanted");
                 }
             }
+            case Constants.Intent.TAF.INTENT_NAME: {
+//                Airport airport = parseAirportFromIntent(request.getIntent());
+//                Slot dateSlot = request.getIntent().getSlot(Constants.Intent.TAF.DATE_SLOT);
+//                String dateString = dateSlot.getValue();
+            }
         }
-        return getSpokenResponse("I have no idea what you want");
+        return getSpokenResponse("Sorry, I could not understand what you want");
+    }
+
+    private static Airport parseAirportFromIntent(Intent intent) {
+        Slot airportIdSlot = intent.getSlots().get(Constants.Intent.AIRPORT_ID_SLOT);
+        Slot airportNameSlot = intent.getSlots().get(Constants.Intent.AIRPORT_NAME_SLOT);
+        Airport airport = null;
+
+        if (airportIdSlot.getValue() != null) {
+            String spokenCode = airportIdSlot.getValue();
+            airport = AirportUtil.getAirportForSpokenIdentifier(spokenCode);
+        } else if (airportNameSlot.getValue() != null) {
+            String airportName = airportNameSlot.getValue();
+            airport = AirportUtil.getAirportForSpokenName(airportName);
+        }
+
+        return airport;
     }
 
     public void onSessionEnded(SessionEndedRequest request, Session session) throws SpeechletException {

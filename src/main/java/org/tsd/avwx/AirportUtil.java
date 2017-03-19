@@ -4,16 +4,23 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.lang3.ArrayUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.TimeZone;
 
 public class AirportUtil {
 
     private static final Map<String, String> natoMap = new HashMap<>();
 
-    public static String getCodeForSpokenIdentifier(String input) {
+    private static final int AIRPORT_NAME_IDX = 1;
+    private static final int AIRPORT_IATA_IDX = 4;
+    private static final int AIRPORT_ICAO_IDX = 5;
+    private static final int AIRPORT_TIMEZONE_IDX = 11;
+
+    public static Airport getAirportForSpokenIdentifier(String input) {
         String[] words = input.split("\\s+");
         StringBuilder sb = new StringBuilder();
         for (String w : words) {
@@ -30,13 +37,30 @@ public class AirportUtil {
                 }
             }
         }
-        return sb.toString();
+
+        if (sb.length() > 0) {
+            try (CSVParser parser = new CSVParser(new InputStreamReader(Driver.class.getResourceAsStream("/airports.csv")), CSVFormat.DEFAULT)) {
+                for (CSVRecord record : parser) {
+                    if (sb.toString().equalsIgnoreCase(record.get(AIRPORT_IATA_IDX)) || sb.toString().equalsIgnoreCase(record.get(AIRPORT_ICAO_IDX))) {
+                        TimeZone timeZone = parseTimeZoneFromRecord(record);
+                        return new Airport(
+                                record.get(AIRPORT_ICAO_IDX),
+                                record.get(AIRPORT_NAME_IDX),
+                                timeZone);
+                    }
+                }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
+        return null;
     }
 
-    public static String getCodeForAirportName(String input) {
+    public static Airport getAirportForSpokenName(String input) {
         try (CSVParser parser = new CSVParser(new InputStreamReader(Driver.class.getResourceAsStream("/airports.csv")), CSVFormat.DEFAULT)) {
 
-            String bestMatch = null;
+            Airport bestMatch = null;
             int bestWordsMatched = 0;
 
             String airportNameInCsv;
@@ -54,7 +78,11 @@ public class AirportUtil {
                         numWordsMatched++;
                     }
                     if (numWordsMatched > bestWordsMatched) {
-                        bestMatch = record.get(5);
+                        TimeZone timeZone = parseTimeZoneFromRecord(record);
+                        bestMatch = new Airport(
+                                record.get(AIRPORT_ICAO_IDX),
+                                record.get(AIRPORT_NAME_IDX),
+                                timeZone);
                         bestWordsMatched = numWordsMatched;
                     }
                 }
@@ -65,6 +93,18 @@ public class AirportUtil {
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private static TimeZone parseTimeZoneFromRecord(CSVRecord record) {
+        String timeZoneString = record.get(AIRPORT_TIMEZONE_IDX);
+        if (StringUtils.isNotBlank(timeZoneString)) {
+            try {
+                return TimeZone.getTimeZone(timeZoneString);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return null;
     }
 
     static {
