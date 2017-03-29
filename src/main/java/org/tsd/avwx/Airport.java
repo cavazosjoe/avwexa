@@ -1,14 +1,14 @@
 package org.tsd.avwx;
 
-import java.util.TimeZone;
+import org.joda.time.DateTimeZone;
 
 public class Airport {
 
     private String code;
     private String name;
-    private TimeZone timeZone;
+    private DateTimeZone timeZone;
 
-    public Airport(String code, String name, TimeZone timeZone) {
+    public Airport(String code, String name, DateTimeZone timeZone) {
         this.code = code;
         this.name = name;
         this.timeZone = timeZone;
@@ -30,11 +30,11 @@ public class Airport {
         this.name = name;
     }
 
-    public TimeZone getTimeZone() {
+    public DateTimeZone getTimeZone() {
         return timeZone;
     }
 
-    public void setTimeZone(TimeZone timeZone) {
+    public void setTimeZone(DateTimeZone timeZone) {
         this.timeZone = timeZone;
     }
 }

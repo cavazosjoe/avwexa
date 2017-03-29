@@ -5,11 +5,11 @@ import org.apache.commons.csv.CSVParser;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.joda.time.DateTimeZone;
 
 import java.io.InputStreamReader;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.TimeZone;
 
 public class AirportUtil {
 
@@ -42,7 +42,7 @@ public class AirportUtil {
             try (CSVParser parser = new CSVParser(new InputStreamReader(Driver.class.getResourceAsStream("/airports.csv")), CSVFormat.DEFAULT)) {
                 for (CSVRecord record : parser) {
                     if (sb.toString().equalsIgnoreCase(record.get(AIRPORT_IATA_IDX)) || sb.toString().equalsIgnoreCase(record.get(AIRPORT_ICAO_IDX))) {
-                        TimeZone timeZone = parseTimeZoneFromRecord(record);
+                        DateTimeZone timeZone = parseTimeZoneFromRecord(record);
                         return new Airport(
                                 record.get(AIRPORT_ICAO_IDX),
                                 record.get(AIRPORT_NAME_IDX),
@@ -78,7 +78,7 @@ public class AirportUtil {
                         numWordsMatched++;
                     }
                     if (numWordsMatched > bestWordsMatched) {
-                        TimeZone timeZone = parseTimeZoneFromRecord(record);
+                        DateTimeZone timeZone = parseTimeZoneFromRecord(record);
                         bestMatch = new Airport(
                                 record.get(AIRPORT_ICAO_IDX),
                                 record.get(AIRPORT_NAME_IDX),
@@ -95,11 +95,11 @@ public class AirportUtil {
         }
     }
 
-    private static TimeZone parseTimeZoneFromRecord(CSVRecord record) {
+    private static DateTimeZone parseTimeZoneFromRecord(CSVRecord record) {
         String timeZoneString = record.get(AIRPORT_TIMEZONE_IDX);
         if (StringUtils.isNotBlank(timeZoneString)) {
             try {
-                return TimeZone.getTimeZone(timeZoneString);
+                return DateTimeZone.forID(timeZoneString);
             } catch (Exception e) {
                 e.printStackTrace();
             }

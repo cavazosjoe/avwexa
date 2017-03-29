@@ -15,9 +15,13 @@ GetMetar weather for {airportName}
 
 GetTaf forecast for {ident}
 GetTaf forecast for {airportName}
+GetTaf forecast at {ident}
+GetTaf forecast at {airportName}
 
-GetTaf forecast for {ident} {AMAZON.DATE}
-GetTaf forecast for {airportName} {AMAZON.DATE}
+GetTaf outlook for {ident}
+GetTaf outlook for {airportName}
+GetTaf outlook at {ident}
+GetTaf outlook at {airportName}
 
 AMAZON.StopIntent no
 AMAZON.StopIntent nope

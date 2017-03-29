@@ -6,7 +6,8 @@ import com.amazon.speech.speechlet.*;
 import com.amazon.speech.ui.PlainTextOutputSpeech;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.tsd.avwx.api.Metar;
+import org.tsd.avwx.api.metar.Metar;
+import org.tsd.avwx.api.taf.Taf;
 
 public class AviationWeatherSpeechlet implements Speechlet {
 
@@ -32,16 +33,24 @@ public class AviationWeatherSpeechlet implements Speechlet {
                         Metar metar = AvwxClient.getMetarForStation(airport.getCode());
                         return getSpokenResponse(SpeechUtil.speakMetar(airport, metar));
                     } catch (Exception e) {
-                        return getSpokenResponse("Sorry, I couldn't fetch the METAR for " + airport);
+                        return getSpokenResponse("Sorry, I couldn't fetch the me tar for " + airport);
                     }
                 } else {
-                    return getSpokenResponse("Sorry, I couldn't figure out what airport you wanted");
+                    return getSpokenResponse("Sorry, I couldn't figure out what airport you wanted a me tar for");
                 }
             }
             case Constants.Intent.TAF.INTENT_NAME: {
-//                Airport airport = parseAirportFromIntent(request.getIntent());
-//                Slot dateSlot = request.getIntent().getSlot(Constants.Intent.TAF.DATE_SLOT);
-//                String dateString = dateSlot.getValue();
+                Airport airport = parseAirportFromIntent(request.getIntent());
+                if (airport != null) {
+                    try {
+                        Taf taf = AvwxClient.getTafForStation(airport.getCode());
+                        return getSpokenResponse(SpeechUtil.speakFullTaf(airport, taf));
+                    } catch (Exception e) {
+                        return getSpokenResponse("Sorry, I couldn't fetch the taf for " + airport);
+                    }
+                } else {
+                    return getSpokenResponse("Sorry, I couldn't figure out what airport you wanted a taf for");
+                }
             }
         }
         return getSpokenResponse("Sorry, I could not understand what you want");

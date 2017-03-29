@@ -1,8 +1,9 @@
-package org.tsd.avwx.api;
+package org.tsd.avwx.api.metar;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import org.apache.commons.lang3.builder.ToStringBuilder;
+import org.tsd.avwx.api.Units;
 
 import java.io.Serializable;
 import java.util.Arrays;
@@ -37,7 +38,7 @@ public class Metar implements Serializable {
     private String time;
 
     @JsonProperty(value = "Translations")
-    private Translations translations;
+    private TranslatedMetar translatedMetar;
 
     @JsonProperty(value = "Units")
     private Units units;
@@ -57,12 +58,12 @@ public class Metar implements Serializable {
     @JsonProperty(value = "Wind-Variable-Dir")
     private List<String> windVariableDirection;
 
-    public Translations getTranslations() {
-        return translations;
+    public TranslatedMetar getTranslatedMetar() {
+        return translatedMetar;
     }
 
-    public void setTranslations(Translations translations) {
-        this.translations = translations;
+    public void setTranslatedMetar(TranslatedMetar translatedMetar) {
+        this.translatedMetar = translatedMetar;
     }
 
     public Info getInfo() {

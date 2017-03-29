@@ -14,6 +14,19 @@
       ]
     },
     {
+      "intent": "GetTaf",
+      "slots": [
+        {
+          "name": "ident",
+          "type": "LIST_OF_AIRPORT_IDS"
+        },
+        {
+          "name": "airportName",
+          "type": "LIST_OF_AIRPORT_NAMES"
+        }
+      ]
+    },
+    {
       "intent": "AMAZON.HelpIntent"
     },
     {

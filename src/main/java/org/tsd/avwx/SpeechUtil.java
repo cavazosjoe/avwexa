@@ -2,11 +2,17 @@ package org.tsd.avwx;
 
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.tsd.avwx.api.Metar;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.format.DateTimeFormat;
+import org.joda.time.format.DateTimeFormatter;
+import org.tsd.avwx.api.Units;
+import org.tsd.avwx.api.metar.Metar;
+import org.tsd.avwx.api.taf.Forecast;
+import org.tsd.avwx.api.taf.Taf;
+import org.tsd.avwx.api.taf.TranslatedForecast;
 
-import java.util.Calendar;
-import java.util.Date;
-import java.util.TimeZone;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 public class SpeechUtil {
@@ -16,26 +22,30 @@ public class SpeechUtil {
 
     public static String speakMetar(Airport airport, Metar metar) {
 
-        Date now = new Date();
-
         String airportSpoken = String.format("%s %s", speakCharacters(airport.getCode()),
                 StringUtils.isNotBlank(metar.getInfo().getName()) ? metar.getInfo().getName() : airport.getName());
 
         StringBuilder speech = new StringBuilder(airportSpoken)
-                .append(speakTime(metar.getTime(), now, airport.getTimeZone())).append(". ");
+                .append(speakTime(metar.getTime(), DateTime.now(), airport.getTimeZone())).append(". ");
 
-        speech.append(speakWind(metar)).append(". ");
+        String windDirection = metar.getWindDirection();
+        String windGust = metar.getWindGust();
+        String windSpeed = metar.getWindSpeed();
+        List<String> windVariable = metar.getWindVariableDirection();
+
+        speech.append(speakWind(windDirection, windGust, windSpeed, null, windVariable, metar.getUnits()))
+                .append(". ");
 
         if (StringUtils.isNotBlank(metar.getVisibility())) {
-            speech.append(speakVisibility(metar)).append(". ");
+            speech.append(speakVisibility(metar.getVisibility(), metar.getUnits())).append(". ");
         }
 
-        if (StringUtils.isNotBlank(metar.getTranslations().getClouds())) {
-            speech.append(metar.getTranslations().getClouds()).append(". ");
+        if (StringUtils.isNotBlank(metar.getTranslatedMetar().getClouds())) {
+            speech.append(metar.getTranslatedMetar().getClouds()).append(". ");
         }
 
-        if (StringUtils.isNotBlank(metar.getTranslations().getOther())) {
-            speech.append(metar.getTranslations().getOther()).append(". ");
+        if (StringUtils.isNotBlank(metar.getTranslatedMetar().getOther())) {
+            speech.append(metar.getTranslatedMetar().getOther()).append(". ");
         }
 
         if (StringUtils.isNotBlank(metar.getTemperature())) {
@@ -49,28 +59,57 @@ public class SpeechUtil {
         return speech.toString();
     }
 
-    private static String speakCharacters(String input) {
-        char[] chars = input.toCharArray();
-        StringBuilder sb = new StringBuilder();
-        for (char c : chars) {
-            sb.append(c).append(" ");
+    public static String speakFullTaf(Airport airport, Taf taf) {
+
+        String airportSpoken = String.format("%s %s", speakCharacters(airport.getCode()),
+                StringUtils.isNotBlank(taf.getInfo().getName()) ? taf.getInfo().getName() : airport.getName());
+
+        Forecast baseForecast = taf.getForecastList().get(0);
+
+        StringBuilder speech = new StringBuilder(airportSpoken)
+                .append(speakTime(taf.getTime(), DateTime.now(), airport.getTimeZone())).append(". ");
+
+        speech.append("valid from ").append(speakDateAndHour(baseForecast.getStartTime(), airport.getTimeZone()))
+                .append(" to ").append(speakDateAndHour(baseForecast.getEndTime(), airport.getTimeZone())).append(". ");
+
+        addPause(speech, 500);
+
+        DateTimeZone timeZone = airport.getTimeZone() == null ? DateTimeZone.UTC : airport.getTimeZone();
+        List<Forecast> rawForecasts = taf.getForecastList();
+        List<TranslatedForecast> translatedForecasts = taf.getTranslations().getForecasts();
+
+        for (int i=1 ; i < rawForecasts.size() ; i++) {
+            speech.append(speakTafPeriod(rawForecasts.get(i), translatedForecasts.get(i), taf.getUnits(), timeZone));
+            addPause(speech, 500);
         }
-        return sb.toString().trim();
+
+        return speech.toString();
     }
 
-    private static String speakNumber(String input) {
-        if (input.contains("/")) {
-            // probably a fraction
-            return input;
-        } else if (input.contains(".")) {
-            // probably a decimal
-            String out = speakCharacters(input);
-            return out.replace(".", "point");
-        } else if (input.startsWith("M")) {
-            // negative number
-            return "minus " + speakCharacters(input.substring(1));
+    public static String speakTafPeriod(Forecast rawForecast, TranslatedForecast translatedForecast, Units units, DateTimeZone timeZone) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("from ").append(speakDateAndHour(rawForecast.getStartTime(), timeZone))
+                .append(" until ").append(speakDateAndHour(rawForecast.getEndTime(), timeZone))
+                .append(" expect ");
+
+        if (StringUtils.isNotBlank(translatedForecast.getClouds())) {
+            sb.append(translatedForecast.getClouds()).append(", ");
         }
-        return input;
+
+        if (StringUtils.isNotBlank(rawForecast.getVisibility())) {
+            sb.append(speakVisibility(rawForecast.getVisibility(), units)).append(", ");
+        }
+
+        sb.append(speakWind(rawForecast.getWindDirection(), rawForecast.getWindGust(), rawForecast.getWindSpeed(), rawForecast.getWindShear(), null, units))
+                .append(", ");
+
+        if (StringUtils.isNotBlank(translatedForecast.getOther())) {
+            sb.append(translatedForecast.getOther());
+        }
+
+        sb.append(". ");
+
+        return sb.toString();
     }
 
     private static String speakAltimeter(Metar metar) {
@@ -92,7 +131,59 @@ public class SpeechUtil {
                 speakTemperatureUnits(metar.getUnits().getTemperatureUnits());
     }
 
-    protected static String speakTime(String time, Date now, TimeZone timeZone) {
+    protected static String speakDateAndHour(String input, DateTimeZone timeZone) {
+
+        DateTimeFormatter formatter = DateTimeFormat.forPattern("ddHH");
+        DateTime dateTime = formatter.parseDateTime(input);
+
+        StringBuilder sb = new StringBuilder();
+
+        if (timeZone == null) {
+            int dayOfMonth = dateTime.getDayOfMonth();
+            int hourOfDay = dateTime.getHourOfDay();
+            if (hourOfDay == 24) {
+                hourOfDay = 0;
+                dayOfMonth++;
+            }
+
+            int currentDayOfMonth = DateTime.now().withZone(DateTimeZone.UTC).getDayOfMonth();
+            if (currentDayOfMonth != dayOfMonth) {
+                sb.append("tomorrow at ");
+            }
+
+            sb.append(hourOfDay).append(" hundred ").append("zulu");
+
+        } else {
+            dateTime = dateTime.withZone(timeZone);
+            int dayOfMonth = dateTime.getDayOfMonth();
+            int hourOfDay = dateTime.getHourOfDay();
+            if (hourOfDay == 24) {
+                hourOfDay = 0;
+                dayOfMonth++;
+            }
+
+            int currentDayOfMonth = DateTime.now().withZone(timeZone).getDayOfMonth();
+            if (currentDayOfMonth != dayOfMonth) {
+                sb.append("tomorrow at ");
+            }
+
+            String spokenHour;
+            if (hourOfDay == 0) {
+                spokenHour = "midnight";
+            } else if (hourOfDay < 12) {
+                spokenHour = hourOfDay + ":00 AM";
+            } else if (hourOfDay == 12){
+                spokenHour = "12:00 PM";
+            } else {
+                spokenHour = (hourOfDay-12) + ":00 PM";
+            }
+            sb.append(spokenHour).append(" local");
+        }
+
+        return sb.toString();
+    }
+
+    protected static String speakTime(String time, DateTime now, DateTimeZone timeZone) {
         String dayString = time.substring(0, 2);
         String timeString = time.substring(2, 6);
 
@@ -100,28 +191,22 @@ public class SpeechUtil {
         int hourOfDay = Integer.parseInt(timeString.substring(0, 2));
         int minuteOfHour = Integer.parseInt(timeString.substring(2, 4));
 
-        Calendar nowCal = Calendar.getInstance();
-        nowCal.setTimeZone(TimeZone.getTimeZone("UTC"));
-        nowCal.setTime(now);
+        DateTime metarTime = new DateTime(now.getMillis(), DateTimeZone.UTC);
+        metarTime = metarTime.withDayOfMonth(dayOfMonth);
+        metarTime = metarTime.withHourOfDay(hourOfDay);
+        metarTime = metarTime.withMinuteOfHour(minuteOfHour);
 
-        Calendar metarCal = Calendar.getInstance();
-        metarCal.setTimeZone(TimeZone.getTimeZone("UTC"));
-        metarCal.setTime(now);
-        metarCal.set(Calendar.DAY_OF_MONTH, dayOfMonth);
-        metarCal.set(Calendar.HOUR_OF_DAY, hourOfDay);
-        metarCal.set(Calendar.MINUTE, minuteOfHour);
-
-        if (dayOfMonth > nowCal.get(Calendar.DAY_OF_MONTH)) {
+        if (dayOfMonth > now.getDayOfMonth()) {
             // the day-of-month on this METAR is bigger than the current one
             // month boundary detected
-            metarCal.add(Calendar.MONTH, -1);
-        } else if (hourOfDay > nowCal.get(Calendar.HOUR_OF_DAY)) {
+            metarTime = metarTime.minusMonths(1);
+        } else if (hourOfDay > now.getHourOfDay()) {
             // the hour on this METAR is bigger than the current hour
             // day boundary detected
-            metarCal.add(Calendar.DATE, -1);
+            metarTime = metarTime.minusDays(1);
         }
 
-        long timeDiff = nowCal.getTimeInMillis() - metarCal.getTimeInMillis();
+        long timeDiff = now.getMillis() - metarTime.getMillis();
         long hoursDiff = timeDiff/ONE_HOUR_IN_MILLIS;
         long minutesDiff = (timeDiff % ONE_HOUR_IN_MILLIS)/(ONE_MINUTE_IN_MILLIS);
 
@@ -143,48 +228,76 @@ public class SpeechUtil {
         output.append(" at ").append(speakCharacters(timeString)).append(" zulu");
 
         if (timeZone != null) {
-            metarCal.setTimeZone(timeZone);
+            metarTime = metarTime.withZone(timeZone);
             String localTimeString =
-                    speakCharacters(String.format("%02d", metarCal.get(Calendar.HOUR_OF_DAY)))
-                    + " " + speakCharacters(String.format("%02d", metarCal.get(Calendar.MINUTE)));
+                    speakCharacters(String.format("%02d", metarTime.getHourOfDay()))
+                    + " " + speakCharacters(String.format("%02d", metarTime.getMinuteOfHour()));
             output.append(", ").append(localTimeString).append(" local");
         }
 
         return output.toString();
     }
 
-    private static String speakWind(Metar metar) {
-        String windSpeed = metar.getWindSpeed();
-        if (StringUtils.isBlank(windSpeed) || Integer.parseInt(windSpeed) == 0) {
+    private static String speakWind(String direction, String gust, String speed,
+                                    String shear, List<String> variable, Units units) {
+        if (StringUtils.isBlank(speed) || Integer.parseInt(speed) == 0) {
             return "wind calm";
         }
 
         StringBuilder sb = new StringBuilder("wind ");
 
-        if ("vrb".equalsIgnoreCase(metar.getWindDirection())) {
+        if ("vrb".equalsIgnoreCase(direction)) {
             sb.append("variable ");
-            if (CollectionUtils.isNotEmpty(metar.getWindVariableDirection())) {
-                sb.append(speakCharacters(metar.getWindVariableDirection().get(0)))
+            if (CollectionUtils.isNotEmpty(variable)) {
+                sb.append(speakCharacters(variable.get(0)))
                         .append(" to ")
-                        .append(speakCharacters(metar.getWindVariableDirection().get(1)));
+                        .append(speakCharacters(variable.get(1)));
             }
         } else {
-            sb.append(speakCharacters(metar.getWindDirection()));
+            sb.append(speakCharacters(direction));
         }
 
-        sb.append(" at ").append(speakNumber(metar.getWindSpeed()));
-        if (StringUtils.isNotBlank(metar.getWindGust())) {
-            sb.append(" gusting ").append(speakNumber(metar.getWindGust()));
+        sb.append(" at ").append(speakNumber(speed));
+        if (StringUtils.isNotBlank(gust)) {
+            sb.append(" gusting ").append(speakNumber(gust));
         }
-        sb.append(" ").append(speakWindSpeedUnits(metar.getUnits().getWindSpeed()));
+        sb.append(" ").append(speakWindSpeedUnits(units.getWindSpeed()));
 
         return sb.toString();
     }
 
-    private static String speakVisibility(Metar metar) {
+    private static String speakVisibility(String input, Units units) {
         return "visibility " +
-                speakNumber(metar.getVisibility()) +
-                " " + speakDistanceUnits(metar.getUnits().getVisibilityUnits());
+                speakVisibilityNumber(input) +
+                " " + speakDistanceUnits(units.getVisibilityUnits());
+    }
+
+    private static String speakCharacters(String input) {
+        char[] chars = input.toCharArray();
+        StringBuilder sb = new StringBuilder();
+        for (char c : chars) {
+            sb.append(c).append(" ");
+        }
+        return sb.toString().trim();
+    }
+
+    private static String speakVisibilityNumber(String input) {
+        return speakNumber(input.replaceAll("P", ""));
+    }
+
+    private static String speakNumber(String input) {
+        if (input.contains("/")) {
+            // probably a fraction
+            return input;
+        } else if (input.contains(".")) {
+            // probably a decimal
+            String out = speakCharacters(input);
+            return out.replace(".", "point");
+        } else if (input.startsWith("M")) {
+            // negative number
+            return "minus " + speakCharacters(input.substring(1));
+        }
+        return input;
     }
 
     private static String speakAltimeterUnits(String input) {
@@ -217,5 +330,21 @@ public class SpeechUtil {
             case "f": return "fahrenheit";
         }
         return null;
+    }
+
+    public static String getOrdinal(int i) {
+        String[] suffixes = new String[] { "th", "st", "nd", "rd", "th", "th", "th", "th", "th", "th" };
+        switch (i % 100) {
+            case 11:
+            case 12:
+            case 13:
+                return i + "th";
+            default:
+                return i + suffixes[i % 10];
+        }
+    }
+
+    private static void addPause(StringBuilder sb, int lengthMillis) {
+        sb.append("<break time=\"").append(lengthMillis).append("ms\"/>");
     }
 }

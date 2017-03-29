@@ -1,4 +1,4 @@
-package org.tsd.avwx.api;
+package org.tsd.avwx.api.metar;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

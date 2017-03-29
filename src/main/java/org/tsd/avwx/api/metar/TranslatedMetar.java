@@ -1,8 +1,8 @@
-package org.tsd.avwx.api;
+package org.tsd.avwx.api.metar;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public class Translations {
+public class TranslatedMetar {
 
     @JsonProperty("Altimeter")
     private String altimeter;
