@@ -133,8 +133,14 @@ public class SpeechUtil {
 
     protected static String speakDateAndHour(String input, DateTimeZone timeZone) {
 
+        int currentDayOfYear = DateTime.now().getDayOfYear();
+        int currentYear = DateTime.now().getYear();
+
         DateTimeFormatter formatter = DateTimeFormat.forPattern("ddHH");
+        formatter = formatter.withZone(DateTimeZone.UTC);
         DateTime dateTime = formatter.parseDateTime(input);
+        dateTime = dateTime.withYear(currentYear);
+        dateTime = dateTime.withDayOfYear(currentDayOfYear);
 
         StringBuilder sb = new StringBuilder();
 
@@ -147,14 +153,17 @@ public class SpeechUtil {
             }
 
             int currentDayOfMonth = DateTime.now().withZone(DateTimeZone.UTC).getDayOfMonth();
-            if (currentDayOfMonth != dayOfMonth) {
+            if (currentDayOfMonth == dayOfMonth-1) {
                 sb.append("tomorrow at ");
+            } else if (currentDayOfMonth == dayOfMonth-2) {
+                sb.append("the day after tomorrow at ");
             }
 
             sb.append(hourOfDay).append(" hundred ").append("zulu");
 
         } else {
             dateTime = dateTime.withZone(timeZone);
+
             int dayOfMonth = dateTime.getDayOfMonth();
             int hourOfDay = dateTime.getHourOfDay();
             if (hourOfDay == 24) {
@@ -163,8 +172,10 @@ public class SpeechUtil {
             }
 
             int currentDayOfMonth = DateTime.now().withZone(timeZone).getDayOfMonth();
-            if (currentDayOfMonth != dayOfMonth) {
+            if (currentDayOfMonth == dayOfMonth-1) {
                 sb.append("tomorrow at ");
+            } else if (currentDayOfMonth == dayOfMonth-2) {
+                sb.append("the day after tomorrow at ");
             }
 
             String spokenHour;

@@ -33,7 +33,7 @@ public class AviationWeatherSpeechlet implements Speechlet {
                         Metar metar = AvwxClient.getMetarForStation(airport.getCode());
                         return getSpokenResponse(SpeechUtil.speakMetar(airport, metar));
                     } catch (Exception e) {
-                        return getSpokenResponse("Sorry, I couldn't fetch the me tar for " + airport);
+                        return getSpokenResponse("Sorry, I couldn't fetch the me tar for " + airport.getName());
                     }
                 } else {
                     return getSpokenResponse("Sorry, I couldn't figure out what airport you wanted a me tar for");
@@ -46,7 +46,7 @@ public class AviationWeatherSpeechlet implements Speechlet {
                         Taf taf = AvwxClient.getTafForStation(airport.getCode());
                         return getSpokenResponse(SpeechUtil.speakFullTaf(airport, taf));
                     } catch (Exception e) {
-                        return getSpokenResponse("Sorry, I couldn't fetch the taf for " + airport);
+                        return getSpokenResponse("Sorry, I couldn't fetch the taf for " + airport.getName());
                     }
                 } else {
                     return getSpokenResponse("Sorry, I couldn't figure out what airport you wanted a taf for");
